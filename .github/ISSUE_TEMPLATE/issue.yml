@@ -1,0 +1,35 @@
+name: Issue
+description: Any work item. It must open with a plain-words paragraph.
+body:
+  - type: textarea
+    id: plain_words
+    attributes:
+      label: In plain words
+      description: >-
+        3 to 5 sentences for someone who does not know the code and barely the
+        project. What is wrong or wanted? Which part of the product does it
+        touch, and what would a user see? How will we know it is done? No code, file
+        paths or commit hashes here.
+    validations:
+      required: true
+  - type: textarea
+    id: measured_facts
+    attributes:
+      label: Measured facts
+      description: What was observed, with numbers. Keep measurements apart from guesses.
+    validations:
+      required: false
+  - type: textarea
+    id: checklist
+    attributes:
+      label: Checklist
+      description: The steps, as "- [ ]" lines.
+    validations:
+      required: false
+  - type: textarea
+    id: exit
+    attributes:
+      label: Exit
+      description: The condition that closes the issue.
+    validations:
+      required: false

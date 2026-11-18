@@ -1,0 +1,54 @@
+name: Issue plain words
+
+on:
+  issues:
+    types: [opened, edited, reopened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    name: Plain-words rule
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+
+      - name: Apply the rule to the issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          NUMBER: ${{ github.event.issue.number }}
+          BODY: ${{ github.event.issue.body }}
+        run: |
+          printf '%s' "$BODY" > "$RUNNER_TEMP/body.md"
+          LABEL="needs plain words"
+          MARK="<!-- issue-plain-words -->"
+          if problems=$(node scripts/check-issue-plain-words.mjs "$RUNNER_TEMP/body.md"); then
+            printf '%s\n' "$problems"
+            gh issue edit "$NUMBER" --remove-label "$LABEL" || true
+            exit 0
+          fi
+          RULE=$(node -e 'import("./scripts/check-issue-plain-words.mjs").then((m) => console.log(m.RULE))')
+          printf '%s\nThis issue does not follow the plain-words rule.\n\n%s\n\nWhat failed:\n%s\n\nEdit the issue body; this check runs again on every edit.\n' \
+            "$MARK" "$RULE" "$problems" > "$RUNNER_TEMP/comment.md"
+          gh label create "$LABEL" --description "The issue lacks a valid In plain words opening" --color fbca04 || true
+          gh issue edit "$NUMBER" --add-label "$LABEL"
+          existing=$(gh api "repos/$GH_REPO/issues/$NUMBER/comments" --paginate \
+            --jq "[.[] | select(.body | startswith(\"$MARK\"))][0].id // empty")
+          if [ -n "$existing" ]; then
+            gh api -X PATCH "repos/$GH_REPO/issues/comments/$existing" -F body=@"$RUNNER_TEMP/comment.md"
+          else
+            gh issue comment "$NUMBER" --body-file "$RUNNER_TEMP/comment.md"
+          fi

@@ -1,0 +1,8 @@
+{
+  "name": "issues-in-plain-words",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/"
+  }
+}
